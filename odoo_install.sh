@@ -15,8 +15,11 @@
 ################################################################################
 
 OE_USER="odoo"
-OE_HOME="/$OE_USER"
-OE_HOME_EXT="/$OE_USER/${OE_USER}-server"
+OE_HOME="/opt/$OE_USER"
+OE_HOME_EXT="$OE_HOME/${OE_USER}-server"
+OE_OCA="$OE_HOME/OCA"
+OE_NEXTERP_ODOO_ENTERP="$OE_HOME/odoo-enterprise"
+OE_NEXTERP_ADDONS_EXTERN="$OE_HOME/addons-extern"
 # The default port where this Odoo instance will run under (provided you use the command -c in the terminal)
 # Set to true if you want to install it, false if you don't need it or have it already installed.
 INSTALL_WKHTMLTOPDF="True"
@@ -26,28 +29,28 @@ OE_PORT="8069"
 # IMPORTANT! This script contains extra libraries that are specifically needed for Odoo 13.0
 OE_VERSION="13.0"
 # Set this to True if you want to install the Odoo enterprise version!
-IS_ENTERPRISE="False"
+IS_ENTERPRISE="True"
 # Set this to True if you want to install Nginx!
-INSTALL_NGINX="False"
+INSTALL_NGINX="True"
 # Set the superadmin password - if GENERATE_RANDOM_PASSWORD is set to "True" we will automatically generate a random password, otherwise we use this one
 OE_SUPERADMIN="admin"
 # Set to "True" to generate a random password, "False" to use the variable in OE_SUPERADMIN
 GENERATE_RANDOM_PASSWORD="True"
 OE_CONFIG="${OE_USER}-server"
 # Set the website name
-WEBSITE_NAME="_"
+WEBSITE_NAME="erp.marketaroma.ro"
 # Set the default Odoo longpolling port (you still have to use -c /etc/odoo-server.conf for example to use this.)
 LONGPOLLING_PORT="8072"
 # Set to "True" to install certbot and have ssl enabled, "False" to use http
 ENABLE_SSL="True"
 # Provide Email to register ssl certificate
-ADMIN_EMAIL="odoo@example.com"
-##
-###  WKHTMLTOPDF download links
-## === Ubuntu Trusty x64 & x32 === (for other distributions please replace these two links,
-## in order to have correct version of wkhtmltopdf installed, for a danger note refer to
-## https://github.com/odoo/odoo/wiki/Wkhtmltopdf ):
-## https://www.odoo.com/documentation/12.0/setup/install.html#debian-ubuntu
+ADMIN_EMAIL="office@marketaroma.ro"
+
+ WKHTMLTOPDF download links
+=== Ubuntu Trusty x64 & x32 === (for other distributions please replace these two links,
+in order to have correct version of wkhtmltopdf installed, for a danger note refer to
+https://github.com/odoo/odoo/wiki/Wkhtmltopdf ):
+https://www.odoo.com/documentation/12.0/setup/install.html#debian-ubuntu
 
 WKHTMLTOX_X64=https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.trusty_amd64.deb
 WKHTMLTOX_X32=https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.trusty_i386.deb
@@ -118,6 +121,27 @@ sudo chown $OE_USER:$OE_USER /var/log/$OE_USER
 echo -e "\n==== Installing ODOO Server ===="
 sudo git clone --depth 1 --branch $OE_VERSION https://www.github.com/odoo/odoo $OE_HOME_EXT/
 
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/account-financial-reporting $OE_OCA/account-financial-reporting
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/account-invoice-reporting $OE_OCA/account-invoice-reporting
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/bank-statement-import $OE_OCA/bank-statement-import
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/brand $OE_OCA/brand
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/currency $OE_OCA/currency
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/e-commerce $OE_OCA/e-commerce
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/hr $OE_OCA/hr
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/l10n-romania $OE_OCA/l10n-romania
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/multi-company $OE_OCA/multi-company
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/queue $OE_OCA/queue
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/reporting-engine $OE_OCA/reporting-engine
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/server-ux $OE_OCA/server-ux
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/OCA/stock-logistics-reporting $OE_OCA/stock-logistics-reporting
+
+if [ $IS_ENTERPRISE = "True" ]; then
+    sudo git clone --depth 1 --branch $OE_VERSION https://github.com/NextERP-Romania/odoo-enterprise $OE_NEXTERP_ODOO_ENTERP/
+fi
+
+sudo git clone --depth 1 --branch $OE_VERSION https://github.com/NextERP-Romania/addons_extern $OE_NEXTERP_ADDONS_EXTERN/
+
+
 if [ $IS_ENTERPRISE = "True" ]; then
     # Odoo Enterprise install!
     echo -e "\n--- Create symlink for node"
@@ -144,8 +168,8 @@ if [ $IS_ENTERPRISE = "True" ]; then
 fi
 
 echo -e "\n---- Create custom module directory ----"
-sudo su $OE_USER -c "mkdir $OE_HOME/custom"
-sudo su $OE_USER -c "mkdir $OE_HOME/custom/addons"
+#sudo su $OE_USER -c "mkdir $OE_HOME/custom"
+#sudo su $OE_USER -c "mkdir $OE_HOME/custom/addons"
 
 echo -e "\n---- Setting permissions on home folder ----"
 sudo chown -R $OE_USER:$OE_USER $OE_HOME/*
@@ -169,9 +193,10 @@ fi
 sudo su root -c "printf 'logfile = /var/log/${OE_USER}/${OE_CONFIG}.log\n' >> /etc/${OE_CONFIG}.conf"
 
 if [ $IS_ENTERPRISE = "True" ]; then
-    sudo su root -c "printf 'addons_path=${OE_HOME}/enterprise/addons,${OE_HOME_EXT}/addons\n' >> /etc/${OE_CONFIG}.conf"
+    sudo su root -c "printf 'addons_path=${OE_HOME}/enterprise/addons,${OE_HOME_EXT}/addons,$OE_OCA/account-financial-reporting,$OE_OCA/account-invoice-reporting,$OE_OCA/bank-statement-import,$OE_OCA/brand,$OE_OCA/currency,$OE_OCA/e-commerce,$OE_OCA/hr,$OE_OCA/l10n-romania,$OE_OCA/multi-company,$OE_OCA/queue,$OE_OCA/reporting-engine,$OE_OCA/server-ux,$OE_OCA/stock-logistics-reporting,$OE_NEXTERP_ODOO_ENTERP,$OE_NEXTERP_ADDONS_EXTERN\n' >> /etc/${OE_CONFIG}.conf"
 else
-    sudo su root -c "printf 'addons_path=${OE_HOME_EXT}/addons,${OE_HOME}/custom/addons\n' >> /etc/${OE_CONFIG}.conf"
+    echo ""
+    #sudo su root -c "printf 'addons_path=${OE_HOME_EXT}/addons,${OE_HOME}/custom/addons\n' >> /etc/${OE_CONFIG}.conf"
 fi
 sudo chown $OE_USER:$OE_USER /etc/${OE_CONFIG}.conf
 sudo chmod 640 /etc/${OE_CONFIG}.conf
